@@ -4,7 +4,7 @@
   "description": "The best way to watch videos.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jooooonyong/wetube_reloaded.git"
+    "url": "git+https://github.com/jooooonyong/wetube_clone.git"
   },
   "scripts": {
     "dev": "nodemon --exec npx babel-node src/server.js"
