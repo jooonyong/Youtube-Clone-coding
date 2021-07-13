@@ -1,14 +1,51 @@
-export const trending = (req,res) =>res.render("home");
-export const see = (req,res) => {
-    res.render("watch");
+import Video from "../models/Video";
+
+export const home = async(req,res) =>{
+    try{
+        const videos = await Video.find({});
+        console.log(videos);
+        return res.render("home",{pageTitle: "Home", videos});
+    }
+    catch{
+        res.render("server-error");
+    }
 }
-export const edit = (req,res) => {
-    console.log(req.params);
-    return res.send("Edit");
+export const watch = (req,res) => {
+    const id = req.params.id;
+    return res.render("watch", {pageTitle:`Watching`});
 }
-export const search = (req,res)=>res.send("Search");
-export const upload = (req,res) => res.send("Upload");
-export const deleteVideo = (req,res) =>{
-    console.log(req.params);
-    return res.send("Delete Video");
+export const getEdit = (req,res) => {
+    const id = req.params.id;
+    return res.render("edit",{pageTitle:`Editing:`});
+}
+export const postEdit = (req,res) =>{
+    const id = req.params.id;
+    const title = req.body.title;
+    console.log(req.body);
+    return res.redirect(`/video/${id}`);
+}
+
+export const getUpload = (req,res)=>{
+    return res.render("upload",{pageTitle:`Upload video`});
+}
+
+export const postUpload = async (req,res)=>{
+    const{title, description,hashtags} = req.body;
+    try{
+        const video = new Video({
+            title,
+            description,
+            createdAt:Date.now(),
+            hashtags:hashtags.split(",").map(word=>`#${word}`),
+            meta:{
+                views:0,
+                rating:0,
+            }
+        })
+        await video.save();
+        return res.redirect("/");
+    }
+    catch(error){
+        return res.render("upload",{pageTitle:`Upload video`,errorMessage:error._message,});
+    }
 }
