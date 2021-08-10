@@ -41,7 +41,7 @@ export const getLogin = (req,res) => res.render("login",{pageTitle:"Login"});
 export const postLogin = async(req,res)=>{
     const {username,password}= req.body;
     const pageTitle = "Login";
-    const user = await User.findOne({username});
+    const user = await User.findOne({username, socialOnly:false});
     if(!user)
     {
         return res.status(400).render("login",{
@@ -94,21 +94,73 @@ export const finishGithubLogin = async(req,res)=>{
 
     if("access_token" in tokenRequest){
         const {access_token} = tokenRequest;
-        const userRequest = await(
-            await fetch("https://api.github.com/user",{
+        const apiUrl = "https://api.github.com";
+        const userData = await(
+            await fetch(`${apiUrl}/user`,{
                 headers:{
                     Authorization: `token ${access_token}`,
                 },   
             })
         ).json();
-        console.log(userRequest);
+        console.log(userData);
+        const emailData = await(
+            await fetch(`${apiUrl}/user/emails`,{
+                headers:{
+                    Authorization: `token ${access_token}`,
+                },
+            })
+        ).json();
+        const emailObj = emailData.find(email=>email.primary===true && email.verified===true);
+        if(!emailObj)
+        {
+            return res.redirect("/login");
+        }
+        let user = await User.findOne({email:emailObj.email});
+        if(!user)
+        {
+            const user = await User.create({
+                avatarUrl:userData.avatar_url,
+                name:userData.name,
+                username:userData.login,
+                email:emailObj.email,
+                password:"",
+                socialOnly:true,
+                location:userData.location,
+            });
+        }
+        req.session.loggedIn = true;
+        req.session.user = user;
+        return res.redirect("/");
     } else{
         return res.redirect("/login");
     }
 
 }
-export const edit = (req,res)=> res.send("Edit User");
-export const remove = (req,res) => res.send("Remove User");
+export const getEdit = (req,res) =>{
+    return res.render("edit-profile",{pageTitle:"Edit Profile"});
+}
 
-export const logout = (req, res) => res.send("LogOut");
+export const postEdit = async (req,res)=>{
+    const {
+        session:{
+            user:{_id},
+        },
+        body:{
+            name, email, username, location
+        },
+    } = req;
+    
+    const updateUser = await User.findByIdAndUpdate(_id,{
+        name, email, username, location,
+    },{
+        new:true
+    });
+    req.session.user = updateUser;
+    return res.redirect("/users/edit");
+}
+
+export const logout = (req, res) => {
+    req.session.destroy();
+    return res.redirect("/");
+}
 export const see = (req, res) => res.send("See User");
